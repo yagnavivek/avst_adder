@@ -19,7 +19,9 @@ module test_adder;
 
    // required by pull_sha
    reg [7:0]  tdata;
+   reg [7:0]  tdelay;
    reg 	      tend;
+   integer i;
 
    // Instantiate the Unit Under Test (UUT)
    adder_avst uut (
@@ -42,23 +44,42 @@ module test_adder;
       forever begin
 	 @(negedge clk);
 	 #5;
-	 if (ready_in == 1 && reset == 0) begin
-	    case ($avst_try_next_item(tdata, tend))
+	 case ($avst_try_next_item(tdelay, tdata, tend))
 	      0: begin
-		 data_in <= tdata;
-		 end_in <= tend;
-		 valid_in <= 1;
-		 @(negedge clk);
-		 #5;
-		 end_in <= 0;
-		 valid_in <= 0;
-		 @(posedge clk);
-		 #5;
-		 retval = $avst_item_done(0);
+	      		for(i=0; i != tdelay ; ++i) begin
+	      			data_in <= 'hx;
+	 			end_in <= 'bx;
+				valid_in <= 0;
+				@(negedge clk);
+	 			#5;
+	 		end
+	      		while (ready_in == 0 || reset == 1) begin
+	      			data_in <= 'hx;
+	 			end_in <= 'bx;
+				valid_in <= 0;
+				@(posedge clk);
+		 		#5;
+			end
+			data_in <= tdata;
+		 	end_in <= tend;
+		 	valid_in <= 1;
+		// @(negedge clk);	//These lines get data_in for every two clock cycles but we want only 1 cc for data to produce (Data will come only when valid is 1 so we never make it 0 then valid_in = 1 which gets data at every clk edge)
+		// #5;
+		// end_in <= 0;
+		// valid_in <= 0;
+		 	@(posedge clk);
+		 	#5;
+			retval = $avst_item_done(0);
 	      end // case: 0
-	      default:  ; // $finish;
+	      default:  
+	      begin
+		     data_in <= 'hx;
+                     end_in <= 'bx;
+                     valid_in <= 0;
+		     @(posedge clk);
+		     #5;
+	     end // $finish;
 	    endcase // case ($avl_try_next_item(tdata, tend))
-	 end // if (ready_in == 1)
       end // forever begin
    end // block: driver
 
@@ -68,7 +89,7 @@ module test_adder;
 	 @(posedge clk);
 	 #2;
 	 if (valid_out) begin
-	    if ($avst_rsp_put(data_out, end_out)) ; // $finish;
+	    if ($avst_rsp_put(0, data_out, end_out)) ; // $finish;
 	 end
       end
    end // block: snooper
@@ -80,7 +101,7 @@ module test_adder;
 	 @(posedge clk);
 	 #2;
 	 if (valid_in) begin
-	    if ($avst_req_put(data_in, end_in)) ; // $finish;
+	    if ($avst_req_put(0, data_in, end_in)) ; // $finish;
 	 end
       end
    end // block: snooper
@@ -100,7 +121,7 @@ module test_adder;
    end // initial begin
 
    initial begin
-      #1000000;
+      #10000000;
       $display("Testbench Timeout");
       $finish;
    end

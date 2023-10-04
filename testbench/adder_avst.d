@@ -8,6 +8,7 @@ class avst_item: uvm_sequence_item
   mixin uvm_object_utils;
 
   @UVM_DEFAULT {
+    @rand ubyte delay;
     @rand ubyte data;
     bool end;
   }
@@ -17,16 +18,20 @@ class avst_item: uvm_sequence_item
   }
 
   Constraint! q{
+  	delay dist [0 :=99, 1..10 :/1];
+  }cst_delay;
+
+  Constraint! q{
     data >= 0x30;
     data <= 0x7a;
   } cst_ascii;
 
   override void do_vpi_put(uvm_vpi_iter iter) {
-    iter.put_values(data, end);
+    iter.put_values(delay, data, end);
   }
 
   override void do_vpi_get(uvm_vpi_iter iter) {
-    iter.get_values(data, end);
+    iter.get_values(delay, data, end);
   }
 }
 
